@@ -22,6 +22,7 @@ class _OnboardingState extends State<Onboarding> {
           Padding(
             padding: const EdgeInsets.only(left: 20.0, right: 20.0),
             child: Text(
+              textAlign: TextAlign.center,
               "Enjoy the new experience of chatting with global friends",
               style: TextStyle(
                   color: Colors.black,
@@ -35,6 +36,7 @@ class _OnboardingState extends State<Onboarding> {
           Padding(
             padding: const EdgeInsets.only(left: 20.0, right: 20.0),
             child: Text(
+              textAlign: TextAlign.center,
               "Connect people the world for free",
               style: TextStyle(
                   color: Colors.black54,
@@ -64,6 +66,7 @@ class _OnboardingState extends State<Onboarding> {
                         height: 40, width: 40, fit: BoxFit.cover),
                     SizedBox(width: 20.0),
                     Text(
+                      textAlign: TextAlign.center,
                       "Sign in with Google",
                       style: TextStyle(
                           color: Colors.white,
