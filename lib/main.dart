@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loop_talk/pages/onboarding.dart';
 
 void main() {
   runApp(const LoopTalk());
@@ -10,8 +11,12 @@ class LoopTalk extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        home: Scaffold(
-      body: Text("WElcome to chat app"),
-    ));
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.deepPurple,
+            ),
+            useMaterial3: true),
+        home: Onboarding());
   }
 }
