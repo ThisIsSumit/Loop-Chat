@@ -1,19 +1,32 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:loop_talk/services/database.dart';
 import 'package:loop_talk/services/shared_pref.dart';
+import 'package:random_string/random_string.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  String name, profileurl, username;
+
+  ChatPage(
+      {required this.name,
+      required this.profileurl,
+      required this.username,
+      super.key});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  String? myUserName, myName, myEmail;
-  getTheSharedpref() async {
+  String? myUserName, myName, myEmail, myPicture, chatRoomId, messageId;
+  TextEditingController messageController = TextEditingController();
+  void getTheSharedpref() async {
     myUserName = await SharedPreferencesHelper.getUserName();
     myName = await SharedPreferencesHelper.getName();
     myEmail = await SharedPreferencesHelper.getEmail();
+    myPicture = await SharedPreferencesHelper.getImage();
+    chatRoomId = getChatRoomIdByUserName(widget.name, myUserName!);
     setState(() {});
   }
 
@@ -22,7 +35,45 @@ class _ChatPageState extends State<ChatPage> {
     getTheSharedpref();
     super.initState();
   }
-  
+
+  getChatRoomIdByUserName(String a, String b) {
+    if (a.substring(0, 1).codeUnitAt(0) > b.substring(0, 1).codeUnitAt(0)) {
+      return "$b\_$a";
+    } else {
+      return "$a\_$b";
+    }
+  }
+
+  void addMessage(bool sendClicked) async {
+    if (messageController.text != "") {
+      String message = messageController.text;
+      messageController.text = "";
+      DateTime now = DateTime.now();
+      String formattedDate = DateFormat('h:mma').format(now);
+      Map<String, dynamic> messageInfoMap = {
+        "message": message,
+        "sendBy": myUserName,
+        "ts": formattedDate,
+        "time": FieldValue.serverTimestamp(),
+        "imgUrl": myPicture
+      };
+      //passing id to every message
+      messageId = randomAlphaNumeric(10);
+      await DatabaseMethods()
+          .addMessage(chatRoomId!, messageId!, messageInfoMap);
+
+      Map<String, dynamic> lastMessageInfoMap = {
+        "lastMessage": message,
+        "lastMessageSendTs": formattedDate,
+        "time": FieldValue.serverTimestamp(),
+        "lastMessageSendBy": myUserName
+      };
+      DatabaseMethods().updateLastMessageSend(chatRoomId!, lastMessageInfoMap);
+      if (sendClicked) {
+        message = "";
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,6 +204,7 @@ class _ChatPageState extends State<ChatPage> {
                                 color: Color(0xFFececf8),
                                 borderRadius: BorderRadius.circular(10)),
                             child: TextField(
+                              controller: messageController,
                               decoration: InputDecoration(
                                   suffixIcon: Icon(Icons.attach_file),
                                   border: InputBorder.none,

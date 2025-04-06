@@ -8,7 +8,7 @@ import 'package:loop_talk/services/shared_pref.dart';
 class AuthMethods {
   final FirebaseAuth auth = FirebaseAuth.instance;
   getCurrentUser() async {
-    return await auth.currentUser;
+    return  auth.currentUser;
   }
 
   signInWithGoogle(BuildContext context) async {
