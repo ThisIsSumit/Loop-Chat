@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loop_talk/services/shared_pref.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -8,6 +9,21 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+  String? myUserName, myName, myEmail;
+  getTheSharedpref() async {
+    myUserName = await SharedPreferencesHelper.getUserName();
+    myName = await SharedPreferencesHelper.getName();
+    myEmail = await SharedPreferencesHelper.getEmail();
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    getTheSharedpref();
+    super.initState();
+  }
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:loop_talk/pages/home.dart';
 import 'package:loop_talk/services/database.dart';
 import 'package:loop_talk/services/shared_pref.dart';
 
@@ -26,12 +27,11 @@ class AuthMethods {
     String userName = userDetails!.email!.replaceAll("@gmail.com", "");
     String firstLetter = userName.substring(0, 1).toUpperCase();
 
-   await SharedPreferencesHelper.saveName(userDetails.displayName ?? "");
-await SharedPreferencesHelper.saveEmail(userDetails.email ?? "");
-await SharedPreferencesHelper.saveImage(userDetails.photoURL ?? "");
-await SharedPreferencesHelper.saveId(userDetails.uid);
-await SharedPreferencesHelper.saveUserName(userDetails.displayName ?? "");
-
+    await SharedPreferencesHelper.saveName(userDetails.displayName ?? "");
+    await SharedPreferencesHelper.saveEmail(userDetails.email ?? "");
+    await SharedPreferencesHelper.saveImage(userDetails.photoURL ?? "");
+    await SharedPreferencesHelper.saveId(userDetails.uid);
+    await SharedPreferencesHelper.saveUserName(userDetails.displayName ?? "");
 
     if (result != null) {
       Map<String, dynamic> userInfoMap = {
@@ -48,9 +48,11 @@ await SharedPreferencesHelper.saveUserName(userDetails.displayName ?? "");
           backgroundColor: Colors.green,
           content: Text("Registered  Successfully!",
               style: TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 22.0,
                   fontWeight: FontWeight.bold))));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => HomeScreen()));
     }
   }
 }
