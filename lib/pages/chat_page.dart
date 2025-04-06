@@ -6,9 +6,9 @@ import 'package:loop_talk/services/shared_pref.dart';
 import 'package:random_string/random_string.dart';
 
 class ChatPage extends StatefulWidget {
-  String name, profileurl, username;
+ final String name, profileurl, username;
 
-  ChatPage(
+ const ChatPage(
       {required this.name,
       required this.profileurl,
       required this.username,
