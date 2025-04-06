@@ -90,8 +90,7 @@ lib/
 ├── models/          # User & Message data models
 ├── pages/         # Login, Signup, Chat, and Home screens
 ├── services/        # Firebase-related logic
-├── widgets/         # Reusable UI components
-├── helpers/         # SharedPreferences helper, utilities
+├── widgets/         # Reusable UI components       
 └── main.dart        # App entry point
 ```
 
