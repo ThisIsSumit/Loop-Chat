@@ -37,7 +37,7 @@ A **real-time chat application** built using **Flutter** and **Firebase**, featu
 
 | Login Screen | Chat Screen | User List |
 |--------------|-------------|-----------|
-| ![login](screenshots/login.png) | ![chat](screenshots/chat.png) | ![users](screenshots/users.png) |
+| ![Image](https://github.com/user-attachments/assets/98f31fa2-4120-4ed1-9542-2161c9a0e0fe)| ![Image](https://github.com/user-attachments/assets/35090683-abd1-4760-ab1b-d32640b4626c) |  |
 
 ---
 
