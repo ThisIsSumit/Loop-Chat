@@ -8,7 +8,7 @@ import 'package:loop_talk/services/shared_pref.dart';
 class AuthMethods {
   final FirebaseAuth auth = FirebaseAuth.instance;
   getCurrentUser() async {
-    return  auth.currentUser;
+    return auth.currentUser;
   }
 
   signInWithGoogle(BuildContext context) async {
@@ -26,16 +26,17 @@ class AuthMethods {
     User? userDetails = result.user;
     String userName = userDetails!.email!.replaceAll("@gmail.com", "");
     String firstLetter = userName.substring(0, 1).toUpperCase();
+    await SharedPreferencesHelper.clearAll();
 
     await SharedPreferencesHelper.saveName(userDetails.displayName ?? "");
     await SharedPreferencesHelper.saveEmail(userDetails.email ?? "");
     await SharedPreferencesHelper.saveImage(userDetails.photoURL ?? "");
     await SharedPreferencesHelper.saveId(userDetails.uid);
-    await SharedPreferencesHelper.saveUserName(userDetails.displayName ?? "");
+    await SharedPreferencesHelper.saveUserName(userName.toUpperCase());
 
     if (result != null) {
       Map<String, dynamic> userInfoMap = {
-        "Name": userDetails!.displayName,
+        "Name": userDetails.displayName,
         "Email": userDetails.email,
         "Image": userDetails.photoURL,
         "Id": userDetails.uid,

@@ -6,9 +6,9 @@ import 'package:loop_talk/services/shared_pref.dart';
 import 'package:random_string/random_string.dart';
 
 class ChatPage extends StatefulWidget {
- final String name, profileurl, username;
+  final String name, profileurl, username;
 
- const ChatPage(
+  const ChatPage(
       {required this.name,
       required this.profileurl,
       required this.username,
@@ -97,10 +97,10 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   SizedBox(
-                    width: MediaQuery.of(context).size.width / 5,
+                    width: 20,
                   ),
                   Text(
-                    "Sumit Kumar",
+                    widget.name,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.white,
