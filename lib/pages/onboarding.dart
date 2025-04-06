@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loop_talk/services/auth.dart';
 
 class Onboarding extends StatefulWidget {
   const Onboarding({super.key});
@@ -65,13 +66,18 @@ class _OnboardingState extends State<Onboarding> {
                     Image.asset('assets/images/search.png',
                         height: 40, width: 40, fit: BoxFit.cover),
                     SizedBox(width: 20.0),
-                    Text(
-                      textAlign: TextAlign.center,
-                      "Sign in with Google",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w500),
+                    GestureDetector(
+                      onTap: () {
+                        AuthMethods().signInWithGoogle(context);
+                      },
+                      child: Text(
+                        textAlign: TextAlign.center,
+                        "Sign in with Google",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),
