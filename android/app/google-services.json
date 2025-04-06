@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1096809484823",
+    "project_id": "loop-talk-b7570",
+    "storage_bucket": "loop-talk-b7570.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1096809484823:android:f5a24d4810e90f1f13c252",
+        "android_client_info": {
+          "package_name": "com.example.loop_talk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV712201E07ogL38eiSXR-YVtWuVxPPDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
