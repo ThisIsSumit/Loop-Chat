@@ -22,7 +22,6 @@ class _HomeScreenState extends State<HomeScreen> {
     myName = await SharedPreferencesHelper.getName();
     myEmail = await SharedPreferencesHelper.getEmail();
     myPicture = await SharedPreferencesHelper.getImage();
-
     setState(() {});
   }
 

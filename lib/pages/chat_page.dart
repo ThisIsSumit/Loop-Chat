@@ -21,20 +21,91 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   String? myUserName, myName, myEmail, myPicture, chatRoomId, messageId;
   TextEditingController messageController = TextEditingController();
-  void getTheSharedpref() async {
+  Stream<QuerySnapshot>? messageStream;
+  getTheSharedpref() async {
     myUserName = await SharedPreferencesHelper.getUserName();
     myName = await SharedPreferencesHelper.getName();
     myEmail = await SharedPreferencesHelper.getEmail();
     myPicture = await SharedPreferencesHelper.getImage();
     chatRoomId = getChatRoomIdByUserName(myUserName!, widget.username);
+    print("Chatroom ID: $chatRoomId");
+
     setState(() {});
-    print(widget.name + "  " + myUserName!);
+  }
+
+  onload() async {
+    await getTheSharedpref(); // Wait for this to finish
+    await getSetMessage(); // Only then call this
   }
 
   @override
   void initState() {
-    getTheSharedpref();
     super.initState();
+    onload();
+  }
+
+  Widget chatMessageTile(String message, bool sendByMe) {
+    return Row(
+      mainAxisAlignment:
+          sendByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        Flexible(
+            child: Container(
+          padding: EdgeInsets.all(16),
+          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                bottomRight:
+                    sendByMe ? Radius.circular(0) : Radius.circular(30),
+                topRight: Radius.circular(24),
+                bottomLeft: sendByMe ? Radius.circular(30) : Radius.circular(0),
+              ),
+              color: sendByMe ? Colors.black45 : Colors.blue),
+          child: Text(
+            message,
+            style: TextStyle(
+                color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+        ))
+      ],
+    );
+  }
+
+  getSetMessage() async {
+    messageStream = await DatabaseMethods().getChatRoomMessages(chatRoomId);
+    setState(() {});
+  }
+
+  Widget chatMessage() {
+    return StreamBuilder(
+      stream: messageStream,
+      builder: (context, AsyncSnapshot snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
+          return Center(child: Text("No messages yet."));
+        }
+
+        print("Fetched ${snapshot.data.docs.length} messages");
+
+        return ListView.builder(
+          itemCount: snapshot.data.docs.length,
+          reverse: true,
+          itemBuilder: (context, index) {
+            DocumentSnapshot ds = snapshot.data.docs[index];
+            print(
+                "Connection: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, length: ${snapshot.data?.docs.length}");
+            return chatMessageTile(
+              ds["message"],
+              ds["sendBy"] == myUserName,
+            );
+          },
+        );
+      },
+    );
   }
 
   getChatRoomIdByUserName(String a, String b) {
@@ -58,6 +129,7 @@ class _ChatPageState extends State<ChatPage> {
         "time": FieldValue.serverTimestamp(),
         "imgUrl": myPicture
       };
+
       //passing id to every message
       messageId = randomAlphaNumeric(10);
       await DatabaseMethods()
@@ -126,62 +198,10 @@ class _ChatPageState extends State<ChatPage> {
               child: Column(
                 children: [
                   SizedBox(
-                    height: 30,
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        margin: EdgeInsets.only(left: 10),
-                        padding: EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.only(
-                              bottomRight: Radius.circular(30),
-                              topLeft: Radius.circular(30),
-                              topRight: Radius.circular(30)),
-                        ),
-                        child: Text(
-                          "How are you ?",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      )
-                    ],
+                    height: MediaQuery.of(context).size.height / 1.25,
+                    child: chatMessage(),
                   ),
                   SizedBox(
-                    height: 10,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        margin: EdgeInsets.only(right: 10),
-                        padding: EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.black45,
-                          borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(30),
-                              topLeft: Radius.circular(30),
-                              topRight: Radius.circular(30)),
-                        ),
-                        child: Text(
-                          "I am good?",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      )
-                    ],
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 1.6,
-                  ),
-                  Container(
                     child: Row(
                       children: [
                         Container(
