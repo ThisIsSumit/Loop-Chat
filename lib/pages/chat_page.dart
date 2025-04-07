@@ -36,6 +36,7 @@ class _ChatPageState extends State<ChatPage> {
   onload() async {
     await getTheSharedpref(); // Wait for this to finish
     await getSetMessage(); // Only then call this
+    setState(() {});
   }
 
   @override
@@ -197,9 +198,11 @@ class _ChatPageState extends State<ChatPage> {
               ),
               child: Column(
                 children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 1.25,
-                    child: chatMessage(),
+                  Flexible(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height / 1.25,
+                      child: chatMessage(),
+                    ),
                   ),
                   SizedBox(
                     child: Row(
