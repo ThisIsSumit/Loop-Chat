@@ -2,7 +2,7 @@ Here’s the completed and polished GitHub `README.md` for your **LoopTalk - Cha
 
 ---
 
-# 💬 LOOPTALK - Chat App
+# 💬 LOOPCHAT - Chat App
 
 A **real-time chat application** built using **Flutter** and **Firebase**, featuring user authentication, responsive UI, and modern design. Connect with friends and enjoy smooth, secure, and fast messaging!
 
