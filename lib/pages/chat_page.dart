@@ -26,8 +26,9 @@ class _ChatPageState extends State<ChatPage> {
     myName = await SharedPreferencesHelper.getName();
     myEmail = await SharedPreferencesHelper.getEmail();
     myPicture = await SharedPreferencesHelper.getImage();
-    chatRoomId = getChatRoomIdByUserName(widget.name, myUserName!);
+    chatRoomId = getChatRoomIdByUserName(myUserName!, widget.username);
     setState(() {});
+    print(widget.name + "  " + myUserName!);
   }
 
   @override
@@ -216,15 +217,20 @@ class _ChatPageState extends State<ChatPage> {
                         SizedBox(
                           width: 10.0,
                         ),
-                        Container(
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                              color: Color(0xff703eff),
-                              borderRadius: BorderRadius.circular(60)),
-                          child: Icon(
-                            Icons.send,
-                            color: Colors.white,
-                            size: 30,
+                        GestureDetector(
+                          onTap: () {
+                            addMessage(true);
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                                color: Color(0xff703eff),
+                                borderRadius: BorderRadius.circular(60)),
+                            child: Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 30,
+                            ),
                           ),
                         ),
                         SizedBox(
