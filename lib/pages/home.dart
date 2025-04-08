@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:loop_talk/pages/chat_page.dart';
 import 'package:loop_talk/services/database.dart';
 import 'package:loop_talk/services/shared_pref.dart';
@@ -16,8 +19,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isSearching = false;
   List<Map<String, dynamic>> searchResults = [];
   String? myUserName, myName, myEmail, myPicture;
+  Stream? chatroomStream;
 
-  void getTheSharedpref() async {
+  getTheSharedpref() async {
     myUserName = await SharedPreferencesHelper.getUserName();
     myName = await SharedPreferencesHelper.getName();
     myEmail = await SharedPreferencesHelper.getEmail();
@@ -25,10 +29,73 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {});
   }
 
+  onload() async {
+    await getTheSharedpref();
+    chatroomStream = await DatabaseMethods().getChatRooms();
+    setState(() {});
+  }
+
   @override
   void initState() {
+    onload();
+    // Add listener to searchController to properly handle text field changes
+    searchController.addListener(_onSearchChanged);
     super.initState();
-    getTheSharedpref();
+  }
+
+  @override
+  void dispose() {
+    // Remove listener when widget is disposed
+    searchController.removeListener(_onSearchChanged);
+    searchController.dispose();
+    super.dispose();
+  }
+
+  // Handle search text changes
+  void _onSearchChanged() {
+    final text = searchController.text;
+    if (text.isEmpty) {
+      setState(() {
+        isSearching = false;
+        searchResults = [];
+      });
+    } else if (text.isNotEmpty && !isSearching) {
+      searchUser(text);
+    }
+  }
+
+  Widget chatRoomList() {
+    return StreamBuilder(
+        stream: chatroomStream,
+        builder: (context, AsyncSnapshot snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          return snapshot.hasData && snapshot.data.docs.length > 0
+              ? ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: snapshot.data.docs.length,
+                  shrinkWrap: true,
+                  itemBuilder: (context, index) {
+                    DocumentSnapshot ds = snapshot.data.docs[index];
+                    return ChatRoomTile(
+                        chatRoomId: ds.id,
+                        myUserName: myUserName!,
+                        lastMessage: ds['lastMessage'] ?? "",
+                        time: ds['lastMessageSendTs'] ?? "");
+                  })
+              : Center(
+                  child: Text(
+                    "No conversations yet!",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+        });
   }
 
   getChatRoomIdByUserName(String a, String b) {
@@ -39,11 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Modified to handle empty string case without setting isSearching right away
   searchUser(String searchQuery) async {
-    setState(() {
-      isSearching = true;
-    });
-
     if (searchQuery.isEmpty) {
       setState(() {
         searchResults = [];
@@ -52,16 +116,16 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    setState(() {
+      isSearching = true;
+    });
+
     // Get the first character as uppercase for search key
     String searchKey = searchQuery.substring(0, 1).toUpperCase();
 
     try {
       QuerySnapshot querySnapshot = await DatabaseMethods().search(searchKey);
-
-      // Clear previous results
-      setState(() {
-        searchResults = [];
-      });
+      List<Map<String, dynamic>> tempResults = [];
 
       // Process the search results
       for (var doc in querySnapshot.docs) {
@@ -75,11 +139,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 .startsWith(searchQuery.toUpperCase())) {
           // Don't include current user in search results
           if (userData['userName'] != myUserName) {
-            setState(() {
-              searchResults.add(userData);
-            });
+            tempResults.add(userData);
           }
         }
+      }
+
+      // Update state with results only if we're still searching for the same text
+      // This prevents old search results from overriding newer ones
+      if (searchController.text == searchQuery) {
+        setState(() {
+          searchResults = tempResults;
+        });
       }
     } catch (e) {
       print("Error searching users: $e");
@@ -152,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.only(left: 20.0),
               child: Text(
-                "LoopTalk",
+                "LoopChat",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: Colors.white,
@@ -160,6 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontWeight: FontWeight.bold),
               ),
             ),
+            SizedBox(height: 20),
             Expanded(
               child: Container(
                 padding: EdgeInsets.only(left: 30.0, right: 30.0),
@@ -189,10 +260,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? IconButton(
                                     icon: Icon(Icons.close),
                                     onPressed: () {
-                                      searchController.clear();
+                                      // Clear text field and ensure isSearching is set to false
                                       setState(() {
-                                        searchResults = [];
+                                        searchController.clear();
                                         isSearching = false;
+                                        searchResults = [];
                                       });
                                     },
                                   )
@@ -201,35 +273,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlignVertical: TextAlignVertical.center,
                       ),
                     ),
-                    SizedBox(height: 20.0),
-                    Expanded(
-                      child: searchResults.isEmpty && isSearching
-                          ? Center(
-                              child: Text(
-                                "No users found",
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            )
-                          : searchResults.isNotEmpty
-                              ? ListView.builder(
+                    SizedBox(
+                      height: 20,
+                    ),
+                    AnimatedSwitcher(
+                      duration: Duration(milliseconds: 300),
+                      child: isSearching
+                          ? searchResults.isEmpty
+                              ? Center(child: Text("No users found"))
+                              : ListView.builder(
+                                  key: ValueKey<String>("search"),
                                   itemCount: searchResults.length,
                                   itemBuilder: (context, index) {
                                     return buildResultCard(
                                         searchResults[index]);
                                   },
                                 )
-                              : Center(
-                                  child: Text(
-                                    "Search for users to chat with",
-                                    style: TextStyle(
-                                      color: Colors.black54,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
+                          : chatRoomList(),
                     ),
                   ],
                 ),
@@ -249,11 +309,14 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           isSearching = false;
           searchController.clear();
+          searchResults = [];
         });
 
         var chatRoomId = getChatRoomIdByUserName(myUserName!, data["userName"]);
         Map<String, dynamic> chatInfoMap = {
           "users": [myUserName, data['userName']],
+          "lastMessage": "",
+          "lastMessageSendTs": DateTime.now().toString(),
         };
 
         await DatabaseMethods().createChatRoom(chatRoomId, chatInfoMap);
@@ -264,7 +327,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context) => ChatPage(
                     name: data['Name'],
                     profileurl: data['Image'],
-                    username: data['userName'])));
+                    username: data['userName']))).then((_) {
+          onload();
+        });
       },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8),
@@ -281,7 +346,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(60),
-                  child: data["Image"] != null
+                  child: data["Image"] != null &&
+                          data["Image"].toString().isNotEmpty
                       ? Image.network(
                           data["Image"],
                           height: 70,
@@ -338,75 +404,160 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class ChatLog extends StatelessWidget {
-  final String imagePath;
-  final String userName;
-  final String message;
+class ChatRoomTile extends StatefulWidget {
+  final String chatRoomId;
+  final String myUserName;
+  final String lastMessage;
   final String time;
 
-  const ChatLog({
+  const ChatRoomTile({
     super.key,
-    required this.imagePath,
-    required this.userName,
-    required this.message,
+    required this.chatRoomId,
+    required this.myUserName,
+    required this.lastMessage,
     required this.time,
   });
 
   @override
+  State<ChatRoomTile> createState() => _ChatRoomTileState();
+}
+
+class _ChatRoomTileState extends State<ChatRoomTile> {
+  String profilePicUrl = "", name = "", username = "", id = "";
+  bool isLoading = true;
+
+  getThisUserInfo() async {
+    try {
+      username = widget.chatRoomId
+          .replaceAll("_", "")
+          .replaceAll(widget.myUserName, "");
+      QuerySnapshot querySnapshot =
+          await DatabaseMethods().getUserInfo(username);
+
+      if (querySnapshot.docs.isNotEmpty) {
+        name = "${querySnapshot.docs[0]["Name"]}";
+        id = "${querySnapshot.docs[0]["Id"]}";
+        profilePicUrl = "${querySnapshot.docs[0]["Image"]}";
+      }
+
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching user info: $e");
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    getThisUserInfo();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      elevation: 3.0,
-      borderRadius: BorderRadius.circular(30),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ChatPage(
+                    name: name,
+                    profileurl: profilePicUrl,
+                    username: username)));
+      },
       child: Container(
-        padding:
-            const EdgeInsets.only(left: 16, right: 16, top: 5, bottom: 8.0),
-        decoration: const BoxDecoration(color: Colors.white54),
-        width: MediaQuery.of(context).size.width,
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(60),
-              child: Image.asset(
-                imagePath,
-                height: 70,
-                width: 70,
-                fit: BoxFit.cover,
-              ),
+        margin: EdgeInsets.symmetric(vertical: 8),
+        child: Material(
+          elevation: 3.0,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, top: 10, bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
             ),
-            const SizedBox(width: 10.0),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+            width: MediaQuery.of(context).size.width,
+            child: Row(
               children: [
-                Text(
-                  userName,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(60),
+                  child: isLoading
+                      ? Container(
+                          height: 70,
+                          width: 70,
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : (profilePicUrl.isNotEmpty
+                          ? Image.network(
+                              profilePicUrl,
+                              height: 70,
+                              width: 70,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.account_circle,
+                                  size: 70,
+                                  color: Colors.grey,
+                                );
+                              },
+                            )
+                          : Icon(
+                              Icons.account_circle,
+                              size: 70,
+                              color: Colors.grey,
+                            )),
+                ),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        name.isEmpty ? 'Loading...' : name,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 5.0),
+                      Text(
+                        widget.lastMessage.isEmpty
+                            ? 'No messages yet'
+                            : widget.lastMessage,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 5.0),
+                const SizedBox(width: 10.0),
                 Text(
-                  message,
+                  widget.time,
                   style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 14,
+                    color: Colors.black,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-            const Spacer(),
-            Text(
-              time,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

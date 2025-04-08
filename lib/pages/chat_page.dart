@@ -37,14 +37,12 @@ class _ChatPageState extends State<ChatPage> {
     myPicture = await SharedPreferencesHelper.getImage();
     chatRoomId = getChatRoomIdByUserName(myUserName!, widget.username);
     print("Chatroom ID: $chatRoomId");
-
-    setState(() {});
   }
 
   onload() async {
     await getTheSharedpref(); // Wait for this to finish
     await getSetMessage(); // Only then call this
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
