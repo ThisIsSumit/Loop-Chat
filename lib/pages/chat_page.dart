@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_sound/public/flutter_sound_recorder.dart';
 import 'package:intl/intl.dart';
 import 'package:loop_talk/services/database.dart';
 import 'package:loop_talk/services/shared_pref.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:random_string/random_string.dart';
 
 class ChatPage extends StatefulWidget {
@@ -22,6 +27,9 @@ class _ChatPageState extends State<ChatPage> {
   String? myUserName, myName, myEmail, myPicture, chatRoomId, messageId;
   TextEditingController messageController = TextEditingController();
   Stream<QuerySnapshot>? messageStream;
+  bool _isRecording = false;
+  String? _filePath;
+  FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   getTheSharedpref() async {
     myUserName = await SharedPreferencesHelper.getUserName();
     myName = await SharedPreferencesHelper.getName();
@@ -149,6 +157,115 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _initialize() async {
+    await _recorder.openRecorder();
+    await _requestPermission();
+    var tempDir = await getTemperaryDirectory();
+    _filePath = '${tempDir.path}/audio.aac';
+  }
+
+  Future _requestPermission() async {
+    var status = await Permission.microphone.status;
+    if (!status.isGranted) {
+      await Permission.microphone.request;
+    }
+  }
+
+  Future<void> _startRecording() async {
+    await _recorder.startRecorder(toFile: _filePath);
+    setState(() {
+      _isRecording = true;
+      Navigator.pop(context);
+      openRecording();
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    await _recorder.stopRecorder();
+    setState(() {
+      _isRecording = false;
+    });
+  }
+
+  Future<void> _uploadFile() async {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+      "Your Audio is Uploading Please wait .....",
+      style: TextStyle(fontSize: 15.0),
+    )));
+    File file = File(_filePath!);
+    try {
+      TaskSnapshot snapshot =
+          await FirebaseStorage.instance.ref('uploads/audio.aac').putFile(file);
+      String downloadURL = await snapshot.ref.getDownloadURL();
+      DateTime now = DateTime.now();
+      String formattedDate = DateFormat('h:mma').format(now);
+      Map<String, dynamic> messageInfoMap = {
+        "Data": "Audio",
+        "message": downloadURL,
+        "sendBy": myUserName,
+        "ts": formattedDate,
+        "time": FieldValue.serverTimestamp(),
+        "imgUrl": myPicture
+      };
+      messageId = randomAlphaNumeric(10);
+      await DatabaseMethods()
+          .addMessage(chatRoomId!, messageId!, messageInfoMap)
+          .then((value) {
+        Map<String, dynamic> lastMessageInfoMap = {
+          "lastMessage": "Audio",
+          "lastMessageSendTs": formattedDate,
+          "time": FieldValue.serverTimestamp(),
+          "lastMessageSendBy": myUserName
+        };
+        DatabaseMethods()
+            .updateLastMessageSend(chatRoomId!, lastMessageInfoMap);
+      });
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  Future openRecording() => showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+            content: SingleChildScrollView(
+              child: Container(
+                child: Column(
+                  children: [
+                    Text(
+                      "Add Voice Note",
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 20.0,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins'),
+                    ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        _startRecording();
+                      },
+                      child: Text("Start Recording Audio"),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        _uploadFile();
+                        Navigator.pop(context);
+                      },
+                      child: Text("Upload Voice Message"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ));
+
+  getTemperaryDirectory() async {}
+
+  getImage() {}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,83 +305,93 @@ class _ChatPageState extends State<ChatPage> {
               height: 20.0,
             ),
             Expanded(
-                child: Container(
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30)),
-                color: Colors.white,
-              ),
-              child: Column(
-                children: [
-                  Flexible(
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height / 1.25,
-                      child: chatMessage(),
+              child: Container(
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30)),
+                  color: Colors.white,
+                ),
+                child: Column(
+                  children: [
+                    Flexible(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height / 1.25,
+                        child: chatMessage(),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                              color: Color(0xff703eff),
-                              borderRadius: BorderRadius.circular(60)),
-                          child: Icon(
-                            Icons.mic,
-                            color: Colors.white,
-                            size: 35,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Expanded(
-                          child: Container(
-                            padding: EdgeInsets.only(left: 10),
-                            decoration: BoxDecoration(
-                                color: Color(0xFFececf8),
-                                borderRadius: BorderRadius.circular(10)),
-                            child: TextField(
-                              controller: messageController,
-                              decoration: InputDecoration(
-                                  suffixIcon: Icon(Icons.attach_file),
-                                  border: InputBorder.none,
-                                  hintText: "Write your message"),
-                              textAlignVertical: TextAlignVertical.center,
+                    SizedBox(
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              openRecording();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                  color: Color(0xff703eff),
+                                  borderRadius: BorderRadius.circular(60)),
+                              child: Icon(
+                                Icons.mic,
+                                color: Colors.white,
+                                size: 35,
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          width: 10.0,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            addMessage(true);
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                                color: Color(0xff703eff),
-                                borderRadius: BorderRadius.circular(60)),
-                            child: Icon(
-                              Icons.send,
-                              color: Colors.white,
-                              size: 30,
+                          SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.only(left: 10),
+                              decoration: BoxDecoration(
+                                  color: Color(0xFFececf8),
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: TextField(
+                                controller: messageController,
+                                decoration: InputDecoration(
+                                    suffixIcon: GestureDetector(
+                                        onTap: () {
+                                          getImage();
+                                        },
+                                        child: Icon(Icons.attach_file)),
+                                    border: InputBorder.none,
+                                    hintText: "Write your message"),
+                                textAlignVertical: TextAlignVertical.center,
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          width: 10.0,
-                        ),
-                      ],
+                          SizedBox(
+                            width: 10.0,
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              addMessage(true);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                  color: Color(0xff703eff),
+                                  borderRadius: BorderRadius.circular(60)),
+                              child: Icon(
+                                Icons.send,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 10.0,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),

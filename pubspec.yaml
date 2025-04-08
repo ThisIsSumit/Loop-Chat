@@ -43,6 +43,10 @@ dependencies:
   google_sign_in: ^6.3.0
   shared_preferences: ^2.5.3
   intl:
+  permission_handler: 
+  flutter_sound: 
+  audioplayers: 
+  path_provider: 
 
 dev_dependencies:
   flutter_test:
