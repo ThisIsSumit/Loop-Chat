@@ -56,4 +56,14 @@ class AuthMethods {
           context, MaterialPageRoute(builder: (context) => HomeScreen()));
     }
   }
+
+  Future signOut() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
+  Future deleteAccount() async {
+    User? user = await FirebaseAuth.instance.currentUser;
+    user?.delete();
+    
+  }
 }
