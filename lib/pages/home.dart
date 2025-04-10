@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -197,10 +198,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   Spacer(),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => ProfilePage()));
+                      // Close keyboard if open
+                      FocusScope.of(context).unfocus();
+                      Timer(Duration(milliseconds: 100), () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ProfilePage()));
+                      });
                     },
                     child: Container(
                       padding: EdgeInsets.all(5),
@@ -284,21 +289,24 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SizedBox(height: 20),
                     Expanded(
-                      child: isSearching
-                          ? searchResults.isEmpty
-                              ? Center(child: Text("No users found"))
-                              : ListView.builder(
-                                  key: ValueKey<String>("search"),
-                                  padding: EdgeInsets.zero,
-                                  itemCount: searchResults.length,
-                                  shrinkWrap: true,
-                                  itemBuilder: (context, index) {
-                                    return buildResultCard(
-                                        searchResults[index]);
-                                  },
-                                )
-                          : chatRoomList(),
-                    ),
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height,
+                        child: isSearching
+                            ? searchResults.isEmpty
+                                ? Center(child: Text("No users found"))
+                                : ListView.builder(
+                                    key: ValueKey<String>("search"),
+                                    padding: EdgeInsets.zero,
+                                    itemCount: searchResults.length,
+                                    shrinkWrap: true,
+                                    itemBuilder: (context, index) {
+                                      return buildResultCard(
+                                          searchResults[index]);
+                                    },
+                                  )
+                            : chatRoomList(),
+                      ),
+                    )
                   ],
                 ),
               ),
