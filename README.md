@@ -86,8 +86,6 @@ A **real-time chat application** built using **Flutter** and **Firebase**, featu
 
 ```
 lib/
-│
-├── models/          # User & Message data models
 ├── pages/         # Login, Signup, Chat, and Home screens
 ├── services/        # Firebase-related logic
 ├── widgets/         # Reusable UI components       
