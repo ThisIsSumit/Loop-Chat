@@ -269,7 +269,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? IconButton(
                                     icon: Icon(Icons.close),
                                     onPressed: () {
-                                      // Clear text field and ensure isSearching is set to false
                                       setState(() {
                                         searchController.clear();
                                         isSearching = false;
@@ -282,17 +281,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlignVertical: TextAlignVertical.center,
                       ),
                     ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    AnimatedSwitcher(
-                      duration: Duration(milliseconds: 300),
+                    SizedBox(height: 20),
+                    Expanded(
                       child: isSearching
                           ? searchResults.isEmpty
                               ? Center(child: Text("No users found"))
                               : ListView.builder(
                                   key: ValueKey<String>("search"),
+                                  padding: EdgeInsets.zero,
                                   itemCount: searchResults.length,
+                                  shrinkWrap: true,
                                   itemBuilder: (context, index) {
                                     return buildResultCard(
                                         searchResults[index]);
@@ -336,9 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context) => ChatPage(
                     name: data['Name'],
                     profileurl: data['Image'],
-                    username: data['userName']))).then((_) {
-          onload();
-        });
+                    username: data['userName'])));
       },
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 8),

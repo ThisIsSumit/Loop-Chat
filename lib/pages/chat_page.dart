@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/public/flutter_sound_recorder.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:loop_talk/services/database.dart';
 import 'package:loop_talk/services/shared_pref.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:random_string/random_string.dart';
 
@@ -69,11 +71,34 @@ class _ChatPageState extends State<ChatPage> {
                 bottomLeft: sendByMe ? Radius.circular(30) : Radius.circular(0),
               ),
               color: sendByMe ? Colors.black45 : Colors.blue),
-          child: Text(
-            message,
-            style: TextStyle(
-                color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-          ),
+          child: message.startsWith('https://') && message.endsWith('.jpg')
+              ? GestureDetector(
+                  onTap: () {
+                    // TODO: Implement full screen image view
+                    showDialog(
+                      context: context,
+                      builder: (context) => Dialog(
+                        child: Image.network(
+                          message,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Image.network(
+                    message,
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : Text(
+                  message,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold),
+                ),
         ))
       ],
     );
@@ -158,7 +183,7 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _initialize() async {
     await _recorder.openRecorder();
     await _requestPermission();
-    var tempDir = await getTemperaryDirectory();
+    var tempDir = await getTemporaryDirectory();
     _filePath = '${tempDir.path}/audio.aac';
   }
 
@@ -261,9 +286,64 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ));
 
-  getTemperaryDirectory() async {}
+  Future<void> getImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
-  getImage() {}
+    if (image != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          "Your Image is Uploading Please wait .....",
+          style: TextStyle(fontSize: 15.0),
+        ),
+      ));
+
+      File file = File(image.path);
+      try {
+        String fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${randomAlphaNumeric(6)}.jpg';
+        TaskSnapshot snapshot = await FirebaseStorage.instance
+            .ref('uploads/images/$fileName')
+            .putFile(file);
+
+        String downloadURL = await snapshot.ref.getDownloadURL();
+        DateTime now = DateTime.now();
+        String formattedDate = DateFormat('h:mma').format(now);
+
+        Map<String, dynamic> messageInfoMap = {
+          "Data": "Image",
+          "message": downloadURL,
+          "sendBy": myUserName,
+          "ts": formattedDate,
+          "time": FieldValue.serverTimestamp(),
+          "imgUrl": myPicture
+        };
+
+        messageId = randomAlphaNumeric(10);
+        await DatabaseMethods()
+            .addMessage(chatRoomId!, messageId!, messageInfoMap)
+            .then((value) {
+          Map<String, dynamic> lastMessageInfoMap = {
+            "lastMessage": "Image",
+            "lastMessageSendTs": formattedDate,
+            "time": FieldValue.serverTimestamp(),
+            "lastMessageSendBy": myUserName
+          };
+          DatabaseMethods()
+              .updateLastMessageSend(chatRoomId!, lastMessageInfoMap);
+        });
+      } catch (e) {
+        print("Error uploading image: $e");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            "Error uploading image. Please try again.",
+            style: TextStyle(fontSize: 15.0),
+          ),
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
