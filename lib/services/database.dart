@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:loop_talk/services/shared_pref.dart';
+import 'package:loop_talk/services/firebaseApi.dart';
 
 class DatabaseMethods {
+  final FirebaseApi firebaseApi = FirebaseApi();
+
   Future addUser(Map<String, dynamic> userInfoMap, String id) async {
     return await FirebaseFirestore.instance
         .collection("users")
@@ -79,5 +82,37 @@ class DatabaseMethods {
         .orderBy("time", descending: true)
         .where("users", arrayContains: myUsername)
         .snapshots();
+  }
+
+  // New method to listen for new messages and show notifications
+  void listenForNewMessages(String chatRoomId, String currentUserName) {
+    FirebaseFirestore.instance
+        .collection("Chatrooms")
+        .doc(chatRoomId)
+        .collection("chats")
+        .orderBy("time", descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) async {
+      if (snapshot.docs.isNotEmpty) {
+        final message = snapshot.docs.first.data();
+        final sender = message['sendBy'] as String;
+        final messageText = message['message'] as String;
+
+        // Only show notification if the message is from someone else
+        if (sender != currentUserName) {
+          // Get sender's name from users collection
+          final senderInfo = await getUserInfo(sender);
+          if (senderInfo.docs.isNotEmpty) {
+            final senderName = senderInfo.docs.first['Name'] as String;
+            await firebaseApi.showChatNotification(
+              senderName: senderName,
+              message: messageText,
+              chatRoomId: chatRoomId,
+            );
+          }
+        }
+      }
+    });
   }
 }

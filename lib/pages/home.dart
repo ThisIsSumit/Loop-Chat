@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> searchResults = [];
   String? myUserName, myName, myEmail, myPicture;
   Stream? chatroomStream;
+  List<StreamSubscription> _messageSubscriptions = [];
 
   getTheSharedpref() async {
     myUserName = await SharedPreferencesHelper.getUserName();
@@ -32,9 +33,62 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {});
   }
 
+  // New method to listen for messages in all chat rooms
+  void _setupMessageListeners() async {
+    // Clear existing subscriptions
+    for (var subscription in _messageSubscriptions) {
+      await subscription.cancel();
+    }
+    _messageSubscriptions.clear();
+
+    if (myUserName == null) return;
+
+    // Get all chat rooms where the user is a participant
+    final chatRooms = await FirebaseFirestore.instance
+        .collection("Chatrooms")
+        .where("users", arrayContains: myUserName)
+        .get();
+
+    // Set up listeners for each chat room
+    for (var chatRoom in chatRooms.docs) {
+      final chatRoomId = chatRoom.id;
+      final subscription = FirebaseFirestore.instance
+          .collection("Chatrooms")
+          .doc(chatRoomId)
+          .collection("chats")
+          .orderBy("time", descending: true)
+          .limit(1)
+          .snapshots()
+          .listen((snapshot) async {
+        if (snapshot.docs.isNotEmpty) {
+          final message = snapshot.docs.first.data();
+          final sender = message['sendBy'] as String;
+          final messageText = message['message'] as String;
+
+          // Only show notification if the message is from someone else
+          if (sender != myUserName) {
+            // Get sender's name from users collection
+            final senderInfo = await DatabaseMethods().getUserInfo(sender);
+            if (senderInfo.docs.isNotEmpty) {
+              final senderName = senderInfo.docs.first['Name'] as String;
+              await DatabaseMethods().firebaseApi.showChatNotification(
+                    senderName: senderName,
+                    message: messageText,
+                    chatRoomId: chatRoomId,
+                  );
+            }
+          }
+        }
+      });
+
+      _messageSubscriptions.add(subscription);
+    }
+  }
+
   onload() async {
     await getTheSharedpref();
     chatroomStream = await DatabaseMethods().getChatRooms();
+    _setupMessageListeners(); // Start listening for messages
     setState(() {});
   }
 
@@ -48,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    // Cancel all subscriptions when the widget is disposed
+    for (var subscription in _messageSubscriptions) {
+      subscription.cancel();
+    }
     // Remove listener when widget is disposed
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();

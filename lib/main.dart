@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'package:loop_talk/pages/onboarding.dart';
+import 'package:loop_talk/services/firebaseApi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,7 @@ void main() async {
               projectId: 'loop-talk-b7570'),
         )
       : await Firebase.initializeApp();
+  await FirebaseApi().initNotifications();
 
   runApp(const LoopTalk());
 }
