@@ -45,6 +45,38 @@ class _ChatPageState extends State<ChatPage> {
     await getTheSharedpref(); // Wait for this to finish
     await getSetMessage(); // Only then call this
     if (mounted) setState(() {});
+
+    // Start listening for new messages with current chatRoomId
+    if (chatRoomId != null && myUserName != null) {
+      FirebaseFirestore.instance
+          .collection("Chatrooms")
+          .doc(chatRoomId)
+          .collection("chats")
+          .orderBy("time", descending: true)
+          .limit(1)
+          .snapshots()
+          .listen((snapshot) async {
+        if (snapshot.docs.isNotEmpty) {
+          final message = snapshot.docs.first.data();
+          final sender = message['sendBy'] as String;
+          final messageText = message['message'] as String;
+
+          if (sender != myUserName) {
+            final senderInfo = await DatabaseMethods().getUserInfo(sender);
+            if (senderInfo.docs.isNotEmpty) {
+              final senderName = senderInfo.docs.first['Name'] as String;
+              await DatabaseMethods().firebaseApi.showChatNotification(
+                    senderName: senderName,
+                    message: messageText,
+                    chatRoomId: chatRoomId!,
+                    currentChatRoomId:
+                        chatRoomId, // Pass current chatRoomId to prevent notification
+                  );
+            }
+          }
+        }
+      });
+    }
   }
 
   @override

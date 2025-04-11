@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> searchResults = [];
   String? myUserName, myName, myEmail, myPicture;
   Stream? chatroomStream;
-  List<StreamSubscription> _messageSubscriptions = [];
+ final  List<StreamSubscription> _messageSubscriptions = [];
 
   getTheSharedpref() async {
     myUserName = await SharedPreferencesHelper.getUserName();
@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Set up listeners for each chat room
     for (var chatRoom in chatRooms.docs) {
-      final chatRoomId = chatRoom.id;
+      final chatRoomId = chatRoom.id; 
       final subscription = FirebaseFirestore.instance
           .collection("Chatrooms")
           .doc(chatRoomId)
@@ -75,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     senderName: senderName,
                     message: messageText,
                     chatRoomId: chatRoomId,
+                    currentChatRoomId:null ,
                   );
             }
           }

@@ -163,15 +163,16 @@ class FirebaseApi {
   }
 
   // New method to show chat notifications
-  Future<void> showChatNotification({
-    required String senderName,
-    required String message,
-    required String chatRoomId,
-  }) async {
+  Future<void> showChatNotification(
+      {required String senderName,
+      required String message,
+      required String chatRoomId,
+      String? currentChatRoomId}) async {
     try {
+      if (currentChatRoomId != null) return;
       await _localNotifications.show(
         chatRoomId.hashCode,
-        'New message from $senderName',
+        '$senderName',
         message,
         NotificationDetails(
           android: AndroidNotificationDetails(
