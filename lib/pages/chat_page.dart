@@ -69,8 +69,7 @@ class _ChatPageState extends State<ChatPage> {
                     senderName: senderName,
                     message: messageText,
                     chatRoomId: chatRoomId!,
-                    currentChatRoomId:
-                        chatRoomId, // Pass current chatRoomId to prevent notification
+                    currentChatRoomId: chatRoomId,
                   );
             }
           }
@@ -83,6 +82,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     onload();
+    _initialize();
   }
 
   Widget chatMessageTile(String message, bool sendByMe) {
@@ -148,24 +148,16 @@ class _ChatPageState extends State<ChatPage> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-
         if (!snapshot.hasData || snapshot.data.docs.isEmpty) {
           return Center(child: Text("No messages yet."));
         }
-
-        print("Fetched ${snapshot.data.docs.length} messages");
 
         return ListView.builder(
           itemCount: snapshot.data.docs.length,
           reverse: true,
           itemBuilder: (context, index) {
             DocumentSnapshot ds = snapshot.data.docs[index];
-            print(
-                "Connection: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, length: ${snapshot.data?.docs.length}");
-            return chatMessageTile(
-              ds["message"],
-              ds["sendBy"] == myUserName,
-            );
+            return chatMessageTile(ds["message"], ds["sendBy"] == myUserName);
           },
         );
       },
@@ -222,7 +214,8 @@ class _ChatPageState extends State<ChatPage> {
   Future _requestPermission() async {
     var status = await Permission.microphone.status;
     if (!status.isGranted) {
-      await Permission.microphone.request;
+      await Permission.microphone.request();
+      ;
     }
   }
 
@@ -366,12 +359,6 @@ class _ChatPageState extends State<ChatPage> {
         });
       } catch (e) {
         print("Error uploading image: $e");
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-            "Error uploading image. Please try again.",
-            style: TextStyle(fontSize: 15.0),
-          ),
-        ));
       }
     }
   }

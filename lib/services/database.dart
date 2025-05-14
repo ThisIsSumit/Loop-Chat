@@ -36,7 +36,7 @@ class DatabaseMethods {
         .where("SearchKey", isEqualTo: username.substring(0, 1).toUpperCase())
         .get();
   }
-
+  
   createChatRoom(
       String chatRoomId, Map<String, dynamic> chatRoomInfoMap) async {
     final snapShot = await FirebaseFirestore.instance
@@ -74,7 +74,7 @@ class DatabaseMethods {
     String? myUsername = await SharedPreferencesHelper.getUserName();
 
     if (myUsername == null) {
-      return Stream.empty(); // or throw an exception/log
+      return Stream.empty();
     }
 
     return FirebaseFirestore.instance
@@ -101,7 +101,7 @@ class DatabaseMethods {
 
         // Only show notification if the message is from someone else
         if (sender != currentUserName) {
-          // Get sender's name from users collection
+         
           final senderInfo = await getUserInfo(sender);
           if (senderInfo.docs.isNotEmpty) {
             final senderName = senderInfo.docs.first['Name'] as String;
